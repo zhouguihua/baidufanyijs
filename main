@@ -1,0 +1,61 @@
+#!/user/bin/env python
+# -*- coding:utf-8 -*-
+# 作者：周桂华
+# 开发时间: 2021/8/8 13:47
+
+
+import requests
+import execjs
+
+
+class baiDuFy(object):
+    def __init__(self, msg, comef, to):
+        self.initial_url = 'https://fanyi.baidu.com/?aldtype=16047'
+        # 从'comef'语言翻译为'to'语言
+        self.comef = comef
+        self.to = to
+        self.url = 'https://fanyi.baidu.com/v2transapi?from={comef}&to={to}'.format(comef=self.comef, to=self.to)
+        self.msg = msg
+
+    def get_sign(self):
+        with open('baidufanyi.js', 'r', encoding='utf-8') as f:
+            ctx = execjs.compile(f.read())
+
+        sign = ctx.call('e', self.msg)
+        return sign
+
+    def get_result(self):
+        data = {  # 翻译内容语言
+            'from': self.comef,
+            # 翻译后的语言
+            'to': self.to,
+            # 翻译内容
+            'query': self.msg,
+            # 固定值
+            'transtype': 'translang',
+            # 固定值
+            'simple_means_flag': 3,
+            # js生成(难点)
+            'sign': self.get_sign(),
+            # 固定值
+            'token': '2446d432cd4cc5a879d46fd54300e38c',
+            # 固定值
+            'domain': 'common'
+        }
+        # X-Requested-With': 'XMLHttpRequest' 该请求是AJAX 异步请求，否则为同步请求, Cookie可以理解为客户端的标识,有效时间应该很长
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
+                                 ' Chrome/88.0.4324.150 Safari/537.36',
+                   'Referer': self.initial_url,
+                   'X-Requested-With': 'XMLHttpRequest',
+                   # 更改请求头Cookie
+                   'Cookie': 'BIDUPSID=****; PSTM=****;'
+                             ' BAIDUID=****:FG=*',
+                   }
+        resp = requests.post(self.url, data=data, headers=headers)
+        return resp.json()['trans_result']['data'][0]['dst']
+
+
+if __name__ == '__main__':     
+    bd = baiDuFy('早上好', comef='zh', to='en')
+    res = bd.get_result()
+    print(res)
